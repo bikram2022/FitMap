@@ -74,6 +74,7 @@ class App {
   #mapZoomLevel = 13;
   #mapEvent;
   #workouts = [];
+  #markers = [];
 
   constructor() {
     //Get user's position
@@ -85,7 +86,13 @@ class App {
     //Attach event handlers
     form.addEventListener("submit", this._newWorkout.bind(this));
     inputType.addEventListener("change", this._toggleElevationField);
-    containerWorkouts.addEventListener("click", this._moveToPopup.bind(this));
+    containerWorkouts.addEventListener("click", (e) => {
+      if (e.target.closest(".workout")) this._moveToPopup.bind(this)(e);
+      if (e.target.closest(".workout__delete"))
+        this._deleteWorkout.bind(this)(e);
+    });
+
+    // Edit a workout
   }
 
   _getPosition() {
@@ -118,10 +125,10 @@ class App {
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(this.#map);
 
-    L.marker(coords)
-      .addTo(this.#map)
-      .bindPopup("A pretty CSS popup.<br> Easily customizable.")
-      .openPopup();
+    // L.marker(coords)
+    //   .addTo(this.#map)
+    //   .bindPopup("A pretty CSS popup.<br> Easily customizable.")
+    //   .openPopup();
 
     this.#map.on("click", this._showForm.bind(this));
 
@@ -205,7 +212,7 @@ class App {
   }
 
   _renderWorkoutMarker(workout) {
-    L.marker(workout.coords)
+    const marker = L.marker(workout.coords)
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -217,12 +224,16 @@ class App {
         })
       )
       .openPopup();
+
+    this.#markers.push(marker);
   }
 
   _renderWorkout(workout) {
     let html = `
         <li class="workout workout--${workout.type}" data-id="${workout.id}">
           <h2 class="workout__title">${workout.description}</h2>
+          <button class="workout__delete"><i class='fa fa-trash-o'></i></button>
+
           <div class="workout__details">
             <span class="workout__icon">${
               workout.type === "running" ? "🏃‍♂️" : "🚴‍♀️"
@@ -316,6 +327,27 @@ class App {
   reset() {
     localStorage.removeItem("workouts");
     location.reload();
+  }
+  _deleteWorkout(e) {
+    const workoutEl = e.target.closest(".workout");
+
+    if (!workoutEl) return;
+
+    //Find workout and its Index
+    const workout = this.#workouts.find(
+      (work) => work.id === workoutEl.dataset.id
+    );
+    const workoutIndex = this.#workouts.indexOf(workout);
+
+    //remove workout and workout element
+    this.#workouts.splice(workoutIndex, 1);
+    workoutEl.remove();
+    
+    localStorage.setItem("workouts", JSON.stringify(this.#workouts));
+
+    //remove marker
+    this.#markers[workoutIndex].remove();
+    this.#markers.splice(workoutIndex,1);
   }
 }
 
