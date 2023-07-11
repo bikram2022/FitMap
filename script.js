@@ -75,6 +75,7 @@ class App {
   #mapEvent;
   #workouts = [];
   #markers = [];
+  #formEditFlag = 0;
 
   constructor() {
     //Get user's position
@@ -84,12 +85,16 @@ class App {
     this._getLocalStorage();
 
     //Attach event handlers
-    form.addEventListener("submit", this._newWorkout.bind(this));
+    form.addEventListener("submit", (e) => {
+      if (this.#formEditFlag == 0) this._newWorkout.bind(this)(e);
+      if (this.#formEditFlag == 1) this._saveEditedWorkout.bind(this)(e);
+    });
     inputType.addEventListener("change", this._toggleElevationField);
     containerWorkouts.addEventListener("click", (e) => {
       if (e.target.closest(".workout")) this._moveToPopup.bind(this)(e);
       if (e.target.closest(".workout__delete"))
         this._deleteWorkout.bind(this)(e);
+      if (e.target.closest(".workout__edit")) this._editWorkout.bind(this)(e);
     });
 
     // Edit a workout
@@ -232,6 +237,7 @@ class App {
     let html = `
         <li class="workout workout--${workout.type}" data-id="${workout.id}">
           <h2 class="workout__title">${workout.description}</h2>
+          <button class="workout__edit"><i class='far fa-edit'></i></button>
           <button class="workout__delete"><i class='fa fa-trash-o'></i></button>
 
           <div class="workout__details">
@@ -342,12 +348,91 @@ class App {
     //remove workout and workout element
     this.#workouts.splice(workoutIndex, 1);
     workoutEl.remove();
-    
+
     localStorage.setItem("workouts", JSON.stringify(this.#workouts));
 
     //remove marker
     this.#markers[workoutIndex].remove();
-    this.#markers.splice(workoutIndex,1);
+    this.#markers.splice(workoutIndex, 1);
+  }
+  _editWorkout(e) {
+    console.log("Ready to edit");
+    const workoutEl = e.target.closest(".workout");
+
+    if (!workoutEl) return;
+
+    //Find workout and its Index
+    const workout = this.#workouts.find(
+      (work) => work.id === workoutEl.dataset.id
+    );
+    const workoutIndex = this.#workouts.indexOf(workout);
+    console.log(workout);
+    console.log(workoutIndex);
+
+    this._showForm();
+    this._fillForm(workout);
+  }
+  _fillForm(workout) {
+    console.log("hello");
+
+    inputDistance.value = workout.distance;
+    inputDuration.value = workout.duration;
+    if (workout.type === "running") {
+      inputCadence.value = workout.cadence;
+
+      if (inputType.value == "cycling") this._toggleElevationField();
+      inputType.value = "running";
+    }
+    if (workout.type === "cycling") {
+      inputElevation.value = workout.elevationGain;
+
+      if (inputType.value == "running") this._toggleElevationField();
+      inputType.value = "cycling";
+    }
+    this.workout = workout;
+    this.#formEditFlag = 1;
+  }
+  _saveEditedWorkout(e) {
+    e.preventDefault();
+    const validInputs = (...inputs) =>
+      inputs.every((inp) => Number.isFinite(inp));
+
+    const allPositive = (...inputs) => inputs.every((inp) => inp > 0);
+
+    //Find workout Index
+    const workoutIndex = this.#workouts.indexOf(this.workout);
+    const type = inputType.value;
+    const distance = +inputDistance.value;
+    const duration = +inputDuration.value;
+    let newWorkout;
+
+    // If workout running, create running object
+    if (type === "running") {
+      const cadence = +inputCadence.value;
+      // Check if data is valid
+      if (
+        !validInputs(distance, duration, cadence) ||
+        !allPositive(distance, duration, cadence)
+      )
+        return alert("Inputs has to be positive");
+
+      newWorkout = new Running(this.workout.coords, distance, duration, cadence);
+    }
+    // If workout cycling, create cycling object
+    if (type === "cycling") {
+      const elevation = +inputElevation.value;
+      if (
+        !validInputs(distance, duration, elevation) ||
+        !allPositive(distance, duration)
+      )
+        return alert("Inputs has to be positive");
+      newWorkout = new Cycling(this.workout.coords, distance, duration, elevation);
+    }
+    this.#workouts[workoutIndex] = newWorkout;
+    this.#formEditFlag = 0;
+    this._hideFrom();
+    location.reload();
+    this._setLocalStorage();
   }
 }
 
