@@ -106,7 +106,6 @@ class App {
       }.bind(this)
     );
 
-    // Edit a workout
   }
 
   _getPosition() {
