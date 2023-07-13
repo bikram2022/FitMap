@@ -97,6 +97,15 @@ class App {
       if (e.target.closest(".workout__edit")) this._editWorkout.bind(this)(e);
     });
 
+    document.addEventListener(
+      "keydown",
+      function (e) {
+        if (e.key === "Escape") {
+          form.classList.add("hidden");
+        }
+      }.bind(this)
+    );
+
     // Edit a workout
   }
 
@@ -146,7 +155,7 @@ class App {
     form.classList.remove("hidden");
     inputDistance.focus();
   }
-  _hideFrom() {
+  _hideForm() {
     //Empty the inputs
     inputDistance.value =
       inputDuration.value =
@@ -210,7 +219,7 @@ class App {
     this._renderWorkout(workout);
 
     //Clear input fields + Hide form
-    this._hideFrom();
+    this._hideForm();
 
     //Set local storage to all workouts
     this._setLocalStorage();
@@ -235,7 +244,9 @@ class App {
 
   _renderWorkout(workout) {
     let html = `
-        <li class="workout workout--${workout.type}" data-id="${workout.id}">
+        <li id="${workout.id}" class="workout workout--${
+      workout.type
+    }" data-id="${workout.id}">
           <h2 class="workout__title">${workout.description}</h2>
           <button class="workout__edit"><i class='far fa-edit'></i></button>
           <button class="workout__delete"><i class='fa fa-trash-o'></i></button>
@@ -401,6 +412,7 @@ class App {
 
     //Find workout Index
     const workoutIndex = this.#workouts.indexOf(this.workout);
+    const oldWorkout = this.#workouts[workoutIndex];
     const type = inputType.value;
     const distance = +inputDistance.value;
     const duration = +inputDuration.value;
@@ -416,7 +428,12 @@ class App {
       )
         return alert("Inputs has to be positive");
 
-      newWorkout = new Running(this.workout.coords, distance, duration, cadence);
+      newWorkout = new Running(
+        this.workout.coords,
+        distance,
+        duration,
+        cadence
+      );
     }
     // If workout cycling, create cycling object
     if (type === "cycling") {
@@ -426,13 +443,22 @@ class App {
         !allPositive(distance, duration)
       )
         return alert("Inputs has to be positive");
-      newWorkout = new Cycling(this.workout.coords, distance, duration, elevation);
+      newWorkout = new Cycling(
+        this.workout.coords,
+        distance,
+        duration,
+        elevation
+      );
     }
     this.#workouts[workoutIndex] = newWorkout;
     this.#formEditFlag = 0;
-    this._hideFrom();
-    location.reload();
+    this._hideForm();
     this._setLocalStorage();
+
+    const oldWorkoutElement = document.getElementById(oldWorkout.id);
+    oldWorkoutElement.remove();
+
+    this._renderWorkout(newWorkout);
   }
 }
 
