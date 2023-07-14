@@ -68,6 +68,7 @@ const inputDistance = document.querySelector(".form__input--distance");
 const inputDuration = document.querySelector(".form__input--duration");
 const inputCadence = document.querySelector(".form__input--cadence");
 const inputElevation = document.querySelector(".form__input--elevation");
+const sortBy = document.querySelector(".sort--type");
 //Application Architecture
 class App {
   #map;
@@ -89,7 +90,11 @@ class App {
       if (this.#formEditFlag == 0) this._newWorkout.bind(this)(e);
       if (this.#formEditFlag == 1) this._saveEditedWorkout.bind(this)(e);
     });
+
+    //form input type
     inputType.addEventListener("change", this._toggleElevationField);
+
+    //Focus, edit delete
     containerWorkouts.addEventListener("click", (e) => {
       if (e.target.closest(".workout")) this._moveToPopup.bind(this)(e);
       if (e.target.closest(".workout__delete"))
@@ -97,6 +102,7 @@ class App {
       if (e.target.closest(".workout__edit")) this._editWorkout.bind(this)(e);
     });
 
+    //close form on escape
     document.addEventListener(
       "keydown",
       function (e) {
@@ -106,6 +112,9 @@ class App {
       }.bind(this)
     );
 
+    //sort
+    //console.log(sortBy);
+    sortBy.addEventListener("change", this._sortWorkouts.bind(this));
   }
 
   _getPosition() {
@@ -241,26 +250,24 @@ class App {
     this.#markers.push(marker);
   }
 
+  //prettier-ignore
   _renderWorkout(workout) {
-    let html = `
-        <li id="${workout.id}" class="workout workout--${
-      workout.type
-    }" data-id="${workout.id}">
-          <h2 class="workout__title">${workout.description}</h2>
-          <button class="workout__edit"><i class='far fa-edit'></i></button>
-          <button class="workout__delete"><i class='fa fa-trash-o'></i></button>
-
-          <div class="workout__details">
-            <span class="workout__icon">${
-              workout.type === "running" ? "🏃‍♂️" : "🚴‍♀️"
-            }</span>
-            <span class="workout__value">${workout.distance}</span>
-            <span class="workout__unit">km</span>
+    let html = `<li id="${workout.id}" class="workout workout--${workout.type}" data-id="${workout.id}">
+          <div class="workout__title_buttons">
+              <h2 class="workout__title">${workout.description}</h2>
+              <button class="workout__edit"><i class='far fa-edit'></i></button>
+              <button class="workout__delete"><i class='fa fa-trash-o'></i></button>
           </div>
-          <div class="workout__details">
-            <span class="workout__icon">⏱</span>
-            <span class="workout__value">${workout.duration}</span>
-            <span class="workout__unit">min</span>
+          <div class ="workout__info">
+            <div class="workout__details">
+              <span class="workout__icon">${workout.type === "running" ? "🏃‍♂️" : "🚴‍♀️"}</span>
+              <span class="workout__value">${workout.distance}</span>
+              <span class="workout__unit">km</span>
+            </div>
+            <div class="workout__details">
+              <span class="workout__icon">⏱</span>
+              <span class="workout__value">${workout.duration}</span>
+              <span class="workout__unit">min</span>
           </div>
     `;
 
@@ -275,6 +282,7 @@ class App {
             <span class="workout__icon">🦶🏼</span>
             <span class="workout__value">${workout.cadence}</span>
             <span class="workout__unit">spm</span>
+          </div>
           </div>
         </li>
         `;
@@ -291,6 +299,7 @@ class App {
             <span class="workout__value">${workout.elevationGain}</span>
             <span class="workout__unit">m</span>
           </div>
+          </div>
         </li>
         `;
     }
@@ -306,8 +315,6 @@ class App {
     const workout = this.#workouts.find(
       (work) => work.id === workoutEl.dataset.id
     );
-
-    // console.log(workout);
 
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
@@ -366,7 +373,6 @@ class App {
     this.#markers.splice(workoutIndex, 1);
   }
   _editWorkout(e) {
-    console.log("Ready to edit");
     const workoutEl = e.target.closest(".workout");
 
     if (!workoutEl) return;
@@ -376,15 +382,11 @@ class App {
       (work) => work.id === workoutEl.dataset.id
     );
     const workoutIndex = this.#workouts.indexOf(workout);
-    console.log(workout);
-    console.log(workoutIndex);
 
     this._showForm();
     this._fillForm(workout);
   }
   _fillForm(workout) {
-    console.log("hello");
-
     inputDistance.value = workout.distance;
     inputDuration.value = workout.duration;
     if (workout.type === "running") {
@@ -458,6 +460,39 @@ class App {
     oldWorkoutElement.remove();
 
     this._renderWorkout(newWorkout);
+  }
+  _sortWorkouts(e) {
+    const workoutElements = Array.from(document.querySelectorAll(".workout"));
+
+    workoutElements.sort((a, b) => {
+      const aWorkout = this.#workouts.find((work) => work.id === a.id);
+      const bWorkout = this.#workouts.find((work) => work.id === b.id);
+      if (sortBy.value === "date") {
+        return bWorkout.date - aWorkout.date;
+      } else if (sortBy.value === "type") {
+        let aType, bType;
+        if (aWorkout.type === "running") aType = 1;
+        if (bWorkout.type === "running") bType = 1;
+        if (aWorkout.type === "cycling") aType = 0;
+        if (bWorkout.type === "cycling") aType = 0;
+        console.log(aType - bType);
+        return aType - bType;
+      } else if (sortBy.value === "duration") {
+        return aWorkout.duration - bWorkout.duration;
+      } else if (sortBy.value === "distance") {
+        return aWorkout.distance - bWorkout.distance;
+      }
+    });
+    let html = "";
+    workoutElements.forEach((workout) => {
+      workout.remove();
+      html += workout;
+    });
+    // console.log(str);
+    // form.insertAdjacentHTML("afterend", html);
+    workoutElements.forEach((workout) => {
+      document.querySelector(".workouts").appendChild(workout);
+    });
   }
 }
 
