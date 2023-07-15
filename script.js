@@ -108,6 +108,11 @@ class App {
       function (e) {
         if (e.key === "Escape") {
           form.classList.add("hidden");
+          inputDistance.value =
+            inputDuration.value =
+            inputCadence.value =
+            inputElevation.value =
+              "";
         }
       }.bind(this)
     );
@@ -334,13 +339,35 @@ class App {
 
   _getLocalStorage() {
     const data = JSON.parse(localStorage.getItem("workouts"));
-    // console.log(data);
 
     if (!data) return;
 
-    this.#workouts = data;
+    //Create object of running and cycling
+    data.forEach((workout) => {
+      let newWorkout;
+      if (workout.type === "running") {
+        newWorkout = new Running();
+        newWorkout.pace = workout.pace;
+        newWorkout.cadence = workout.cadence;
+      }
+      if (workout.type === "cycling") {
+        newWorkout = new Cycling();
+        newWorkout.speed = workout.speed;
+        newWorkout.elevationGain = workout.elevationGain;
+      }
 
-    const T = this;
+      newWorkout.type = workout.type;
+      newWorkout.distance = workout.distance;
+      newWorkout.duration = workout.duration;
+
+      newWorkout.clicks = workout.clicks;
+      newWorkout.coords = workout.coords;
+      newWorkout.date = new Date(workout.date);
+      newWorkout.description = workout.description;
+      newWorkout.id = workout.id;
+
+      this.#workouts.push(newWorkout);
+    });
 
     this.#workouts.forEach((workout) => {
       this._renderWorkout(workout);
@@ -451,6 +478,12 @@ class App {
         elevation
       );
     }
+
+    newWorkout.date = new Date(this.workout.date);
+    newWorkout.id = this.workout.id;
+    newWorkout.clicks = this.workout.clicks;
+    newWorkout.description = this.workout.description;
+
     this.#workouts[workoutIndex] = newWorkout;
     this.#formEditFlag = 0;
     this._hideForm();
